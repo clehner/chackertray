@@ -14,20 +14,28 @@
 
 #define HN_API "https://hacker-news.firebaseio.com/v0/"
 
-static unsigned int max_stories = 5;
+#define MAX_STORIES 5
+
+const guint refresh_timeout = 10;
 
 GtkStatusIcon *status_icon;
 GtkWidget *app_menu;
 GtkWidget *settings_menu;
 GMultiCurl *gmulticurl;
 
-struct item {
+struct story {
+    guint num;
+    gint32 id;
     char *name;
     char *description;
+    GtkWidget *menu_item;
 };
 
-static void menu_add_item(struct item *);
-static void refresh_items();
+struct story stories[MAX_STORIES];
+
+static void menu_init_item(struct story *);
+static void refresh_stories();
+static void refresh_story(struct story *);
 
 static void menu_on_about(GtkMenuItem *menuItem, gpointer userData)
 {
@@ -45,9 +53,13 @@ static gboolean status_icon_on_button_press(GtkStatusIcon *status_icon,
     GdkEventButton *event, gpointer user_data)
 {
     /* Show the app menu on left click */
-    GtkMenu *menu = GTK_MENU(event->button == 1 ? app_menu : settings_menu);
+    GtkWidget *menu = event->button == 1 ? app_menu : settings_menu;
 
-    gtk_menu_popup(menu, NULL, NULL, gtk_status_icon_position_menu,
+    if (menu == app_menu) {
+        refresh_stories(FALSE);
+    }
+
+    gtk_menu_popup(GTK_MENU(menu), NULL, NULL, gtk_status_icon_position_menu,
             status_icon, event->button, event->time);
 
     return TRUE;
@@ -71,8 +83,17 @@ int main(int argc, char *argv[])
     app_menu = gtk_menu_new();
     menu = GTK_MENU_SHELL(app_menu);
 
+    /* Story items */
+    for (guint i = 0; i < MAX_STORIES; i++) {
+        menu_init_item(&stories[i]);
+    }
+
+    gtk_menu_shell_append(menu, gtk_separator_menu_item_new());
+
+    /* Refresh */
     item = gtk_menu_item_new_with_mnemonic(_("_Refresh"));
-    g_signal_connect(item, "activate", G_CALLBACK(refresh_items), NULL);
+    gpointer immediate = GINT_TO_POINTER(FALSE);
+    g_signal_connect(item, "activate", G_CALLBACK(refresh_stories), immediate);
     gtk_menu_shell_append(menu, item);
 
     /* Settings menu */
@@ -92,12 +113,6 @@ int main(int argc, char *argv[])
     gtk_widget_show_all(app_menu);
     gtk_widget_show_all(settings_menu);
 
-    struct item x = {
-        .name = "name",
-        .description = "asdf",
-    };
-    menu_add_item(&x);
-
     if (!(gmulticurl = gmulticurl_new()))
         g_warning("gmulticurl init error");
 
@@ -109,7 +124,7 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-static void menu_on_item(GtkMenuItem *menuItem, struct item *item)
+static void menu_on_item(GtkMenuItem *menuItem, struct story *item)
 {
     GError *error;
     const gchar *argv[] = {"xdg-open", item->name, NULL};
@@ -120,15 +135,14 @@ static void menu_on_item(GtkMenuItem *menuItem, struct item *item)
     }
 }
 
-static void menu_add_item(struct item *item)
+static void menu_init_item(struct story *item)
 {
     GtkWidget *menu_item = gtk_menu_item_new_with_label(item->name);
     GtkMenuShell *menu = GTK_MENU_SHELL(app_menu);
 
-    gtk_widget_set_tooltip_text(menu_item, item->description);
     g_signal_connect(menu_item, "activate", G_CALLBACK(menu_on_item), item);
+    item->menu_item = menu_item;
 
-    gtk_widget_show(menu_item);
     gtk_menu_shell_append(menu, menu_item);
 }
 
@@ -142,23 +156,53 @@ static size_t topstories_on_data(char *data, size_t len, gpointer arg)
         return 0;
     }
 
-    for (n = 0; *p && n < max_stories; n++) {
-        long id = atol(p);
-        g_print("item: %ld\n", id);
+    for (n = 0; *p && n < MAX_STORIES; n++) {
+        struct story *story = &stories[n];
+        story->id = atol(p);
         p = strchr(p, ',');
         if (p) p++;
+        refresh_story(story);
     }
 
     return len;
 }
 
-static void refresh_items()
+static gboolean refresh_stories_cb(gpointer timer)
 {
-    g_print("refresh\n");
+    *(gint *)timer = 0;
+    return G_SOURCE_REMOVE;
+}
+
+static void refresh_stories(gboolean immediate)
+{
+    static gint refresh_timer;
+
+    if (refresh_timer) {
+        if (immediate)
+            g_source_remove(refresh_timer);
+        else
+            return;
+    }
+
+    refresh_timer = gdk_threads_add_timeout_seconds_full(G_PRIORITY_LOW,
+            refresh_timeout, refresh_stories_cb, &refresh_timer, NULL);
+
     const gchar *url = HN_API "topstories.json";
     if (gmulticurl_request(gmulticurl, url, topstories_on_data, NULL)) {
         g_warning("gmulticurl_request error");
     }
+}
+
+static void refresh_story(struct story *story)
+{
+    GtkMenuItem *menu_item = GTK_MENU_ITEM(story->menu_item);
+
+    story->name = "foo";
+    story->description = "asdf";
+
+    gtk_menu_item_set_label(menu_item, story->name);
+    gtk_widget_set_tooltip_text(story->menu_item, story->description);
+    gtk_widget_show(story->menu_item);
 }
 
 /* vim: set expandtab ts=4 sw=4 */
