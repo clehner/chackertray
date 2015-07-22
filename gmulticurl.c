@@ -66,7 +66,7 @@ callback.
 
 #include "gmulticurl.h"
 
-#define MSG_OUT g_print   /* Change to "g_error" to write to stderr */
+#define MSG_OUT noop   /* Change to "g_error" to write to stderr */
 #define SHOW_VERBOSE 0    /* Set to non-zero for libcurl messages */
 #define SHOW_PROGRESS 0   /* Set to non-zero to enable progress callback */
 
@@ -103,6 +103,9 @@ typedef struct _SockInfo {
 } SockInfo;
 
 
+static void noop(const char *fmt, ...) {
+  (void)fmt;
+}
 
 
 /* Die if we get a bad CURLMcode somewhere */
@@ -307,7 +310,7 @@ static int prog_cb (void *p, double dltotal, double dlnow, double ult, double ul
 
 
 /* Create a new easy handle, and add it to the global curl_multi */
-int gmulticurl_request(GMultiCurl *g, const char *url, write_cb_fn on_write,
+int gmulticurl_request(GMultiCurl *g, const gchar *url, write_cb_fn on_write,
     gpointer arg)
 {
   ConnInfo *conn;

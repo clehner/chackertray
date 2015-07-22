@@ -4,7 +4,7 @@
 
 #include "gmulticurl.h"
 
-#define VERSION "0.0.0"
+#define VERSION "1.0.0"
 #define APPNAME "chackertray"
 #define COPYRIGHT "Copyright (c) 2015 Charles Lehner"
 #define COMMENTS "Hacker News for your system tray."
@@ -14,9 +14,9 @@
 
 #define HN_API "https://hacker-news.firebaseio.com/v0/"
 
-#define MAX_STORIES 5
+#define MAX_STORIES 10
 
-const guint refresh_timeout = 10;
+const guint refresh_timeout = 120;
 
 GtkStatusIcon *status_icon;
 GtkWidget *app_menu;
@@ -25,9 +25,10 @@ GMultiCurl *gmulticurl;
 
 struct story {
     guint num;
-    gint32 id;
-    char *name;
-    char *description;
+    guint id;
+    gchar *url;
+    gchar *title;
+    gchar *description;
     GtkWidget *menu_item;
 };
 
@@ -36,6 +37,9 @@ struct story stories[MAX_STORIES];
 static void menu_init_item(struct story *);
 static void refresh_stories();
 static void refresh_story(struct story *);
+static size_t topstories_on_data(gchar *data, size_t len, gpointer arg);
+static size_t story_on_data(gchar *data, size_t len, gpointer arg);
+static void update_story(struct story *story);
 
 static void menu_on_about(GtkMenuItem *menuItem, gpointer userData)
 {
@@ -127,7 +131,7 @@ int main(int argc, char *argv[])
 static void menu_on_item(GtkMenuItem *menuItem, struct story *item)
 {
     GError *error;
-    const gchar *argv[] = {"xdg-open", item->name, NULL};
+    const gchar *argv[] = {"xdg-open", item->url, NULL};
     if (!g_spawn_async(NULL, (gchar **)argv, NULL, G_SPAWN_SEARCH_PATH,
                 NULL, NULL, NULL, &error)) {
         g_warning("Launching item failed: %s", error->message);
@@ -137,34 +141,13 @@ static void menu_on_item(GtkMenuItem *menuItem, struct story *item)
 
 static void menu_init_item(struct story *item)
 {
-    GtkWidget *menu_item = gtk_menu_item_new_with_label(item->name);
+    GtkWidget *menu_item = gtk_menu_item_new_with_label(item->title);
     GtkMenuShell *menu = GTK_MENU_SHELL(app_menu);
 
     g_signal_connect(menu_item, "activate", G_CALLBACK(menu_on_item), item);
     item->menu_item = menu_item;
 
     gtk_menu_shell_append(menu, menu_item);
-}
-
-static size_t topstories_on_data(char *data, size_t len, gpointer arg)
-{
-    char *p = data;
-    unsigned int n;
-
-    if (*p++ != '[') {
-        g_warning("expected [ in top stories json");
-        return 0;
-    }
-
-    for (n = 0; *p && n < MAX_STORIES; n++) {
-        struct story *story = &stories[n];
-        story->id = atol(p);
-        p = strchr(p, ',');
-        if (p) p++;
-        refresh_story(story);
-    }
-
-    return len;
 }
 
 static gboolean refresh_stories_cb(gpointer timer)
@@ -187,20 +170,100 @@ static void refresh_stories(gboolean immediate)
     refresh_timer = gdk_threads_add_timeout_seconds_full(G_PRIORITY_LOW,
             refresh_timeout, refresh_stories_cb, &refresh_timer, NULL);
 
+    g_print("refreshing stories\n");
+
     const gchar *url = HN_API "topstories.json";
     if (gmulticurl_request(gmulticurl, url, topstories_on_data, NULL)) {
         g_warning("gmulticurl_request error");
     }
 }
 
+static size_t topstories_on_data(gchar *data, size_t len, gpointer arg)
+{
+    char *p = data;
+    unsigned int n;
+
+    if (*p++ != '[') {
+        g_warning("expected [ in top stories json");
+        return 0;
+    }
+
+    for (n = 0; *p && n < MAX_STORIES; n++) {
+        struct story *story = &stories[n];
+        story->id = atoi(p);
+        p = strchr(p, ',');
+        if (p) p++;
+        refresh_story(story);
+    }
+
+    return len;
+}
+
 static void refresh_story(struct story *story)
+{
+    gchar url[1024];
+    guint id = story->id;
+
+    if (g_snprintf(url, sizeof url, "%sitem/%u.json", HN_API, id) < 0) {
+        g_warning("failed to build item url");
+    }
+
+    if (gmulticurl_request(gmulticurl, url, story_on_data, story)) {
+        g_warning("gmulticurl_request error");
+    }
+}
+
+void extract_quote(gchar *str)
+{
+    gchar c;
+	gchar *in = str;
+    gchar *out = str;
+    gboolean escape = FALSE;
+
+    while ((c = *in++) && (c != '"' || escape)) {
+        if (c == '\\')
+            escape ^= 1;
+        if (escape)
+            continue;
+        if (in != out)
+            *out++ = c;
+    }
+    *out = '\0';
+}
+
+static size_t story_on_data(gchar *data, size_t len, gpointer arg)
+{
+    struct story *story = arg;
+    gchar *title, *url;
+
+    if (!(title = strstr(data, "\"title\":\""))) {
+        g_warning("couldn't find item title");
+        return 0;
+    }
+
+    if (!(url = strstr(data, "\"url\":\""))) {
+        g_warning("couldn't find item url");
+        return 0;
+    }
+
+    title += 9;
+    extract_quote(title);
+    story->title = title;
+
+    url += 7;
+    extract_quote(url);
+    story->url = url;
+
+    update_story(story);
+
+    return len;
+}
+
+static void update_story(struct story *story)
 {
     GtkMenuItem *menu_item = GTK_MENU_ITEM(story->menu_item);
 
-    story->name = "foo";
-    story->description = "asdf";
-
-    gtk_menu_item_set_label(menu_item, story->name);
+    gtk_menu_item_set_label(menu_item, story->title);
     gtk_widget_set_tooltip_text(story->menu_item, story->description);
     gtk_widget_show(story->menu_item);
 }
