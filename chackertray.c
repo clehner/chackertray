@@ -1,15 +1,16 @@
 /*
  * chackertray -- Hacker News in your system tray
  * Copyright (c) 2015 Charles Lehner
- *
  * Fair License (Fair)
- *
- * Usage of the works is permitted provided that this instrument is retained
- * with the works, so that any entity that uses the works is notified of this
- * instrument.
- *
- * DISCLAIMER: THE WORKS ARE WITHOUT WARRANTY.
  */
+#define LICENSE "\
+Fair License (Fair)\
+\n\n\
+Usage of the works is permitted provided that this instrument \
+is retained with the works, so that any entity that uses the \
+works is notified of this instrument.\
+\n\n\
+DISCLAIMER: THE WORKS ARE WITHOUT WARRANTY."
 
 #include <gtk/gtk.h>
 #include <glib/gi18n.h>
@@ -66,6 +67,8 @@ static void menu_on_about(GtkMenuItem *menuItem, gpointer userData)
             "copyright", COPYRIGHT,
             "comments", COMMENTS,
             "website", WEBSITE,
+            "license", LICENSE,
+            "wrap-license", TRUE,
             NULL);
 }
 
