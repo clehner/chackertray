@@ -59,14 +59,14 @@ static void update_story(struct story *story);
 
 static void menu_on_about(GtkMenuItem *menuItem, gpointer userData)
 {
-	gtk_show_about_dialog(NULL,
-			"program-name", APPNAME,
-			"version", VERSION,
-			"logo-icon-name", LOGO_ICON,
-			"copyright", COPYRIGHT,
-			"comments", COMMENTS,
-			"website", WEBSITE,
-			NULL);
+    gtk_show_about_dialog(NULL,
+            "program-name", APPNAME,
+            "version", VERSION,
+            "logo-icon-name", LOGO_ICON,
+            "copyright", COPYRIGHT,
+            "comments", COMMENTS,
+            "website", WEBSITE,
+            NULL);
 }
 
 static gboolean status_icon_on_button_press(GtkStatusIcon *status_icon,
@@ -88,7 +88,7 @@ static gboolean status_icon_on_button_press(GtkStatusIcon *status_icon,
 int main(int argc, char *argv[])
 {
     GtkWidget *item;
-	GtkMenuShell *menu;
+    GtkMenuShell *menu;
 
     gtk_init(&argc, &argv);
 
@@ -232,7 +232,7 @@ static void refresh_story(struct story *story)
 void extract_quote(gchar *str)
 {
     gchar c;
-	gchar *in = str;
+    gchar *in = str;
     gchar *out = str;
     gboolean escape = FALSE;
 
@@ -311,4 +311,4 @@ static void update_story(struct story *story)
     gtk_widget_show(story->menu_item);
 }
 
-/* vim: set expandtab ts=4 sw=4 */
+/* vim: set expandtab ts=4 sw=4: */
