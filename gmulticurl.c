@@ -1,59 +1,18 @@
-/***************************************************************************
- *                                  _   _ ____  _
- *  Project                     ___| | | |  _ \| |
- *                             / __| | | | |_) | |
- *                            | (__| |_| |  _ <| |___
- *                             \___|\___/|_| \_\_____|
+/*
+ * gmulticurl -- Use libcurl with glib, asynchronously
+ * Copyright (c) 2015 Charles Lehner
  *
- * Copyright (C) 1998 - 2015, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Based on the cURL project's hiper.c, which was written by Jeff Pohlmeyer,
+ * and is licensed as in the COPYING-curl file.
  *
- * This software is licensed as described in the file COPYING, which
- * you should have received as part of this distribution. The terms
- * are also available at http://curl.haxx.se/docs/copyright.html.
+ * gmulticurl is made available under the terms of the Fair License (Fair):
  *
- * You may opt to use, copy, modify, merge, publish, distribute and/or sell
- * copies of the Software, and permit persons to whom the Software is
- * furnished to do so, under the terms of the COPYING file.
+ * Usage of the works is permitted provided that this instrument is retained
+ * with the works, so that any entity that uses the works is notified of this
+ * instrument.
  *
- * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
- * KIND, either express or implied.
- *
- ***************************************************************************/
-/* <DESC>
- * multi socket API usage together with with glib2
- * </DESC>
+ * DISCLAIMER: THE WORKS ARE WITHOUT WARRANTY.
  */
-/* Example application source code using the multi socket interface to
- * download many files at once.
- *
- * Written by Jeff Pohlmeyer
-
-Requires glib-2.x and a (POSIX?) system that has mkfifo().
-
-This is an adaptation of libcurl's "hipev.c" and libevent's "event-test.c"
-sample programs, adapted to use glib's g_io_channel in place of libevent.
-
-When running, the program creates the named pipe "hiper.fifo"
-
-Whenever there is input into the fifo, the program reads the input as a list
-of URL's and creates some new easy handles to fetch each URL via the
-curl_multi "hiper" API.
-
-
-Thus, you can try a single URL:
-  % echo http://www.yahoo.com > hiper.fifo
-
-Or a whole bunch of them:
-  % cat my-url-list > hiper.fifo
-
-The fifo buffer is handled almost instantly, so you can even add more URL's
-while the previous requests are still being downloaded.
-
-This is purely a demo app, all retrieved data is simply discarded by the write
-callback.
-
-*/
-
 
 #include <glib.h>
 #include <sys/stat.h>

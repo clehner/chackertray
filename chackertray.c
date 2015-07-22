@@ -1,3 +1,16 @@
+/*
+ * chackertray -- Hacker News in your system tray
+ * Copyright (c) 2015 Charles Lehner
+ *
+ * Fair License (Fair)
+ *
+ * Usage of the works is permitted provided that this instrument is retained
+ * with the works, so that any entity that uses the works is notified of this
+ * instrument.
+ *
+ * DISCLAIMER: THE WORKS ARE WITHOUT WARRANTY.
+ */
+
 #include <gtk/gtk.h>
 #include <glib/gi18n.h>
 #include <stdlib.h>
@@ -8,7 +21,7 @@
 #define APPNAME "chackertray"
 #define COPYRIGHT "Copyright (c) 2015 Charles Lehner"
 #define COMMENTS "Hacker News for your system tray."
-#define WEBSITE "http://github.com/clehner/chackertray"
+#define WEBSITE "https://github.com/clehner/chackertray"
 
 #define LOGO_ICON "mail-send-receive"
 
