@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
     gtk_init(&argc, &argv);
 
     /* Status icon */
-    status_icon = gtk_status_icon_new_from_stock(GTK_STOCK_GO_UP);
+    status_icon = gtk_status_icon_new_from_icon_name(LOGO_ICON);
     gtk_status_icon_set_visible(status_icon, TRUE);
 
     g_signal_connect(G_OBJECT(status_icon), "button_press_event",
