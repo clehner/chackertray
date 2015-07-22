@@ -1,5 +1,6 @@
 #include <gtk/gtk.h>
 #include <glib/gi18n.h>
+#include <stdlib.h>
 
 #include "gmulticurl.h"
 
@@ -10,6 +11,10 @@
 #define WEBSITE "http://github.com/clehner/chackertray"
 
 #define LOGO_ICON "mail-send-receive"
+
+#define HN_API "https://hacker-news.firebaseio.com/v0/"
+
+static unsigned int max_stories = 5;
 
 GtkStatusIcon *status_icon;
 GtkWidget *app_menu;
@@ -22,7 +27,7 @@ struct item {
 };
 
 static void menu_add_item(struct item *);
-// static void refresh_items();
+static void refresh_items();
 
 static void menu_on_about(GtkMenuItem *menuItem, gpointer userData)
 {
@@ -34,20 +39,6 @@ static void menu_on_about(GtkMenuItem *menuItem, gpointer userData)
 			"comments", COMMENTS,
 			"website", WEBSITE,
 			NULL);
-}
-
-static size_t on_write(char *data, size_t len, gpointer user_data)
-{
-    printf("got data [%zu]: %.*s\n", len, (int)len, data);
-    return len;
-}
-
-static void menu_on_refresh(GtkMenuItem *menuItem, gpointer userData)
-{
-    g_print("refresh\n");
-    if (gmulticurl_request(gmulticurl, "http://localhost/nodeinfo.json", on_write, NULL)) {
-        g_warning("gmulticurl_request error");
-    }
 }
 
 static gboolean status_icon_on_button_press(GtkStatusIcon *status_icon,
@@ -81,7 +72,7 @@ int main(int argc, char *argv[])
     menu = GTK_MENU_SHELL(app_menu);
 
     item = gtk_menu_item_new_with_mnemonic(_("_Refresh"));
-    g_signal_connect(item, "activate", G_CALLBACK(menu_on_refresh), NULL);
+    g_signal_connect(item, "activate", G_CALLBACK(refresh_items), NULL);
     gtk_menu_shell_append(menu, item);
 
     /* Settings menu */
@@ -139,6 +130,35 @@ static void menu_add_item(struct item *item)
 
     gtk_widget_show(menu_item);
     gtk_menu_shell_append(menu, menu_item);
+}
+
+static size_t topstories_on_data(char *data, size_t len, gpointer arg)
+{
+    char *p = data;
+    unsigned int n;
+
+    if (*p++ != '[') {
+        g_warning("expected [ in top stories json");
+        return 0;
+    }
+
+    for (n = 0; *p && n < max_stories; n++) {
+        long id = atol(p);
+        g_print("item: %ld\n", id);
+        p = strchr(p, ',');
+        if (p) p++;
+    }
+
+    return len;
+}
+
+static void refresh_items()
+{
+    g_print("refresh\n");
+    const gchar *url = HN_API "topstories.json";
+    if (gmulticurl_request(gmulticurl, url, topstories_on_data, NULL)) {
+        g_warning("gmulticurl_request error");
+    }
 }
 
 /* vim: set expandtab ts=4 sw=4 */
