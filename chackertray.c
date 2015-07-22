@@ -105,7 +105,9 @@ int main(int argc, char *argv[])
         menu_init_item(&stories[i]);
     }
 
-    gtk_menu_shell_append(menu, gtk_separator_menu_item_new());
+    /* Settings menu */
+    settings_menu = gtk_menu_new();
+    menu = GTK_MENU_SHELL(settings_menu);
 
     /* Refresh */
     item = gtk_menu_item_new_with_mnemonic(_("_Refresh"));
@@ -113,9 +115,7 @@ int main(int argc, char *argv[])
     g_signal_connect(item, "activate", G_CALLBACK(refresh_stories), immediate);
     gtk_menu_shell_append(menu, item);
 
-    /* Settings menu */
-    settings_menu = gtk_menu_new();
-    menu = GTK_MENU_SHELL(settings_menu);
+    gtk_menu_shell_append(menu, gtk_separator_menu_item_new());
 
     /* About */
     item = gtk_menu_item_new_with_mnemonic(_("_About"));
