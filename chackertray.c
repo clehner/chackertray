@@ -37,12 +37,15 @@ GtkWidget *settings_menu;
 GMultiCurl *gmulticurl;
 
 struct story {
+    GtkWidget *menu_item;
     guint num;
     guint id;
     gchar *url;
     gchar *title;
     gchar *description;
-    GtkWidget *menu_item;
+    guint num_comments;
+    guint points;
+    time_t time;
 };
 
 struct story stories[MAX_STORIES];
@@ -247,7 +250,7 @@ void extract_quote(gchar *str)
 static size_t story_on_data(gchar *data, size_t len, gpointer arg)
 {
     struct story *story = arg;
-    gchar *title, *url;
+    gchar *title, *url, *num_comments, *points, *time;
 
     if (!(title = strstr(data, "\"title\":\""))) {
         g_warning("couldn't find item title");
@@ -259,15 +262,38 @@ static size_t story_on_data(gchar *data, size_t len, gpointer arg)
         return 0;
     }
 
+    if (!(num_comments = strstr(data, "\"descendants\":"))) {
+        g_warning("couldn't find number of comments");
+        return 0;
+    }
+
+    if (!(points = strstr(data, "\"score\":"))) {
+        g_warning("couldn't find item points");
+        return 0;
+    }
+
+    if (!(time = strstr(data, "\"time\":"))) {
+        g_warning("couldn't find item time");
+        return 0;
+    }
+
     title += 9;
     extract_quote(title);
     story->title = title;
 
     url += 7;
     extract_quote(url);
-    story->url = url;
+    if (story->url)
+        g_free(story->url);
+    story->url = g_strdup(url);
+
+    story->num_comments = atoi(num_comments + 14);
+    story->points = atoi(points + 8);
+    story->time = atol(time + 7);
 
     update_story(story);
+
+    story->title = NULL;
 
     return len;
 }
@@ -275,8 +301,12 @@ static size_t story_on_data(gchar *data, size_t len, gpointer arg)
 static void update_story(struct story *story)
 {
     GtkMenuItem *menu_item = GTK_MENU_ITEM(story->menu_item);
+    gchar title[512];
 
-    gtk_menu_item_set_label(menu_item, story->title);
+    g_snprintf(title, sizeof title, "%03u/%03u   %s",
+            story->points, story->num_comments, story->title);
+
+    gtk_menu_item_set_label(menu_item, title);
     gtk_widget_set_tooltip_text(story->menu_item, story->description);
     gtk_widget_show(story->menu_item);
 }
