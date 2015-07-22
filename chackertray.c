@@ -28,7 +28,7 @@ DISCLAIMER: THE WORKS ARE WITHOUT WARRANTY."
 
 #define HN_API "https://hacker-news.firebaseio.com/v0/"
 
-#define MAX_STORIES 10
+#define MAX_STORIES 20
 
 const guint refresh_timeout = 120;
 
