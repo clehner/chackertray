@@ -1,6 +1,8 @@
 #include <gtk/gtk.h>
 #include <glib/gi18n.h>
 
+#include "gmulticurl.h"
+
 #define VERSION "0.0.0"
 #define APPNAME "chackertray"
 #define COPYRIGHT "Copyright (c) 2015 Charles Lehner"
@@ -12,6 +14,7 @@
 GtkStatusIcon *status_icon;
 GtkWidget *app_menu;
 GtkWidget *settings_menu;
+GMultiCurl *gmulticurl;
 
 struct item {
     char *name;
@@ -19,7 +22,7 @@ struct item {
 };
 
 static void menu_add_item(struct item *);
-static void refresh_items();
+// static void refresh_items();
 
 static void menu_on_about(GtkMenuItem *menuItem, gpointer userData)
 {
@@ -31,6 +34,20 @@ static void menu_on_about(GtkMenuItem *menuItem, gpointer userData)
 			"comments", COMMENTS,
 			"website", WEBSITE,
 			NULL);
+}
+
+static size_t on_write(char *data, size_t len, gpointer user_data)
+{
+    printf("got data: %.*s\n", (int)len, data);
+    return len;
+}
+
+static void menu_on_refresh(GtkMenuItem *menuItem, gpointer userData)
+{
+    g_print("refresh\n");
+    if (gmulticurl_request(gmulticurl, "http://localhost/nodeinfo.json", on_write, NULL)) {
+        g_warning("gmulticurl_request error");
+    }
 }
 
 static gboolean status_icon_on_button_press(GtkStatusIcon *status_icon,
@@ -63,7 +80,8 @@ int main(int argc, char *argv[])
     app_menu = gtk_menu_new();
     menu = GTK_MENU_SHELL(app_menu);
 
-    item = gtk_menu_item_new_with_mnemonic(_("_Foo"));
+    item = gtk_menu_item_new_with_mnemonic(_("_Refresh"));
+    g_signal_connect(item, "activate", G_CALLBACK(menu_on_refresh), NULL);
     gtk_menu_shell_append(menu, item);
 
     /* Settings menu */
@@ -89,7 +107,13 @@ int main(int argc, char *argv[])
     };
     menu_add_item(&x);
 
+    if (!(gmulticurl = gmulticurl_new()))
+        g_warning("gmulticurl init error");
+
     gtk_main();
+
+    if (gmulticurl_cleanup(gmulticurl))
+        g_warning("gmulticurl init error");
 
     return 0;
 }

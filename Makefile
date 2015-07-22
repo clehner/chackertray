@@ -1,9 +1,8 @@
 BIN = chackertray
-SRC = chackertray.c
+SRC = chackertray.c gmulticurl.c
 OBJ = $(SRC:.c=.o)
-CFLAGS = -Wall -pedantic -std=gnu99
-CFLAGS = $(shell pkg-config --cflags gtk+-2.0)
-LDFLAGS = $(shell pkg-config --libs gtk+-2.0)
+CFLAGS = -Wall -pedantic -std=gnu99 -g
+LDFLAGS = $(shell pkg-config --libs gtk+-2.0 libcurl)
 
 all: $(BIN)
 
@@ -16,6 +15,9 @@ $(BIN):: $(OBJ)
 
 .c.o:
 	$(CC) -c $(CFLAGS) $< -o $@
+
+chackertray.o: CFLAGS += $(shell pkg-config --cflags gtk+-2.0)
+gmulticurl.o: CFLAGS += $(shell pkg-config --cflags glib-2.0)
 
 install: all
 	install -m 0755 $(BIN) $(DESTDIR)$(BINDIR)
