@@ -2,7 +2,7 @@
  * gmulticurl -- Use libcurl with glib, asynchronously
  * Copyright (c) 2015 Charles Lehner
  *
- * Based on the cURL project's hiper.c, which was written by Jeff Pohlmeyer,
+ * Based on the cURL project's ghiper.c, which was written by Jeff Pohlmeyer,
  * and is licensed as in the COPYING-curl file.
  *
  * gmulticurl is made available under the terms of the Fair License (Fair):
