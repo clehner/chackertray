@@ -164,7 +164,9 @@ static gboolean timer_cb(gpointer data)
                                   CURL_SOCKET_TIMEOUT, 0, &g->still_running);
   mcode_or_die("timer_cb: curl_multi_socket_action", rc);
   check_multi_info(g);
-  return FALSE;
+
+  g->timer_event = 0;
+  return G_SOURCE_REMOVE;
 }
 
 
@@ -206,7 +208,10 @@ static gboolean event_cb(GIOChannel *ch, GIOCondition condition, gpointer data)
     return TRUE;
   } else {
     MSG_OUT("last transfer done, kill timeout\n");
-    if (g->timer_event) { g_source_remove(g->timer_event); }
+    if (g->timer_event) {
+      g_source_remove(g->timer_event);
+      g->timer_event = 0;
+    }
     return FALSE;
   }
 }
@@ -286,7 +291,7 @@ static size_t write_cb(void *ptr, size_t size, size_t nmemb, void *data)
 {
   size_t realsize = size * nmemb;
   ConnInfo *conn = (ConnInfo*) data;
-  return conn->on_write(conn->user_data, realsize, ptr);
+  return conn->on_write(ptr, realsize, conn->user_data);
 }
 
 

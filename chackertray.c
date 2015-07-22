@@ -38,7 +38,7 @@ static void menu_on_about(GtkMenuItem *menuItem, gpointer userData)
 
 static size_t on_write(char *data, size_t len, gpointer user_data)
 {
-    printf("got data: %.*s\n", (int)len, data);
+    printf("got data [%zu]: %.*s\n", len, (int)len, data);
     return len;
 }
 
